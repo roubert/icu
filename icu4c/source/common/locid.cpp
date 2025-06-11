@@ -235,6 +235,13 @@ locale_get_default()
 
 U_NAMESPACE_BEGIN
 
+struct Locale::Foo : public UMemory {
+    int value;
+
+    Foo() = default;
+    ~Foo() = default;
+};
+
 UOBJECT_DEFINE_RTTI_IMPLEMENTATION(Locale)
 
 /*Character separating the posix id fields*/

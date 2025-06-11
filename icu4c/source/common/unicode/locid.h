@@ -35,6 +35,9 @@
 
 #if U_SHOW_CPLUSPLUS_API
 
+#include <memory>
+#include <variant>
+
 #include "unicode/bytestream.h"
 #include "unicode/localpointer.h"
 #include "unicode/strenum.h"
@@ -1165,6 +1168,11 @@ private:
     char fullNameBuffer[ULOC_FULLNAME_CAPACITY];
     // name without keywords
     char* baseName;
+
+    struct Foo;
+    std::unique_ptr<Foo> foo;
+    std::variant<std::monostate, int, std::unique_ptr<Foo>> bar;
+
     void initBaseName(UErrorCode& status);
 
     UBool fIsBogus;
