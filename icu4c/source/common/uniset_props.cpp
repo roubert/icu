@@ -745,6 +745,14 @@ class UnicodeSet::Lexer {
                 if (queryOperatorPosition.has_value()) {
                     propertyPredicate =
                         pattern_.tempSubStringBetween(*queryOperatorPosition + 1, queryExpressionLimit);
+                    if (propertyPredicate.isEmpty()) {
+                        // \p{X=} is valid if X is a string-valued or miscellaneous property, but
+                        // ICU does not support those.  Thus, it is invalid for ICU purposes, and
+                        // passing an empty propertyPredicate to applyPropertyAlias can be valid
+                        // (this is how we represent \p{X}), so we need to return the error here.
+                        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+                        return {};
+                    }
                 }
                 UnicodeSet result;
                 result.applyPropertyAlias(

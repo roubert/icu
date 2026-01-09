@@ -4766,6 +4766,9 @@ void UnicodeSetTest::TestParseErrors() {
             uR"([:Some_Property=\u:])",
             uR"(\p{Some_Property=\N{SOME CHARACTER}})",
             uR"([\N{}])",
+            // These were legal in in ICU 78 and earlier, see ICU-23308.
+            uR"(\p{XID_Continue=})",
+            uR"(\p{Uppercase_Letter=})",
         }) {
         UErrorCode errorCode = U_ZERO_ERROR;
         const UnicodeSet set(expression, errorCode);
