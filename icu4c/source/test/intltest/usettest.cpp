@@ -4638,8 +4638,8 @@ void UnicodeSetTest::TestToPatternOutput() {
             {u"[ - - ]", uR"([\-])"},
             {u"[ - _ - ]", uR"([\-_])"},
             {u"[ - + - ]", uR"([+\-])"},
-            {u"[ { Z e i c h e n k e t t e } Zeichenmenge ]", u"[Zceg-imn{Zeichenkette}]"},
-            {uR"([ { \x5A e i c h e n k e t t e } \x5Aeichenmenge ])", u"[Zceg-imn{Zeichenkette}]"},
+            {u"[ { Z e i c h e n k e t t e } Zeichenmenge ]", uR"([Zceg-imn{\ Z\ e\ i\ c\ h\ e\ n\ k\ e\ t\ t\ e\ }])"},
+            {uR"([ { \x5A e i c h e n k e t t e } \x5Aeichenmenge ])", uR"([Zceg-imn{\ Z\ e\ i\ c\ h\ e\ n\ k\ e\ t\ t\ e\ }])"},
             {u"[$d-za-c]", uR"([\$a-z])"},
             {u"[a-c$d-z]", uR"([\$a-z])"},
             {uR"([\uFFFFa-z])", uR"([a-z\uFFFF])"},
@@ -4664,10 +4664,10 @@ void UnicodeSetTest::TestToPatternOutput() {
             {uR"([ ^ [ \u0000-b d-\U0010FFFF ] ])", uR"([^[^c]])"},
             {u"[$[]]", uR"([\$[]])"},
             // Spaces are eliminated within a string-literal even when the syntax is preserved.
-            {u"[ {Z e i c h e n k e t t e } [] Zeichenmenge ]", u"[{Zeichenkette}[]Zeichenmenge]"},
+            {u"[ { Z e i c h e n k e t t e } [] Zeichenmenge ]", uR"([{\ Z\ e\ i\ c\ h\ e\ n\ k\ e\ t\ t\ e\ }[]Zeichenmenge])"},
             // Escapes are removed even when the syntax is preserved.
             {uR"([ { \x5A e i c h e n k e t t e } [] \x5Aeichenmenge ])",
-            u"[{Zeichenkette}[]Zeichenmenge]"},
+            uR"([{\ Z\ e\ i\ c\ h\ e\ n\ k\ e\ t\ t\ e\ }[]Zeichenmenge])"},
             // In ICU 78 and earlier, a named-element was a nested set, so it was preserved and
             // caused the syntax to be preserved.  Now it is treated like an escape.
             {uR"([ \N{LATIN CAPITAL LETTER Z}eichenmenge ])", uR"([Zceg-imn])"},

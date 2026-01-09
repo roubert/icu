@@ -538,9 +538,9 @@ class UnicodeSet::Lexer {
             UChar32 next;
             int32_t codePointCount = 0;
             while (!chars_.atEnd() && U_SUCCESS(errorCode)) {
-                // TODO(egg): Propose making this space-sensitive.
                 const RuleCharacterIterator::Pos beforeNext = getPos();
-                next = chars_.next(charsOptions_ & ~RuleCharacterIterator::PARSE_ESCAPES,
+                next = chars_.next(charsOptions_ & ~(RuleCharacterIterator::PARSE_ESCAPES |
+                                                     RuleCharacterIterator::SKIP_WHITESPACE),
                                    unusedEscaped, errorCode);
                 if (next == u'\\') {
                     const UChar32 afterBackslash =
