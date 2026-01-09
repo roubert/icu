@@ -678,10 +678,10 @@ class UnicodeSet::Lexer {
         // named-element: while ICU does not support string-valued properties and thus has no
         // use for escapes, we still want to lex through escapes to allow downstream
         // implementations (mostly unicodetools) to implement string-valued properties.
+        const UChar32 third = chars_.next(charsOptions_ & ~(RuleCharacterIterator::PARSE_ESCAPES |
+                                                            RuleCharacterIterator::SKIP_WHITESPACE),
+                                          unusedEscaped, errorCode);
         if (first == u'\\') {
-            const UChar32 third = chars_.next(charsOptions_ & ~(RuleCharacterIterator::PARSE_ESCAPES |
-                                                                RuleCharacterIterator::SKIP_WHITESPACE),
-                                              unusedEscaped, errorCode);
             if (third != u'{') {
                 errorCode = U_ILLEGAL_ARGUMENT_ERROR;
                 return {};
@@ -689,13 +689,6 @@ class UnicodeSet::Lexer {
             exteriorlyNegated = second == u'P';
             queryExpressionStart = parsePosition_.getIndex();
         } else {
-            // Skip whitespace here regardless of the options, as ICU used to do that.
-            // TODO(egg): PD UTS #61 does not allow space within [:^ (even though it otherwise specifies
-            // the space-insensitive version of the syntax).  Either the line below needs to change to
-            // match the other branch of the if statement, or PD UTS #61 needs to be fixed.
-            const UChar32 third = chars_.next((charsOptions_ & ~RuleCharacterIterator::PARSE_ESCAPES) |
-                                                  RuleCharacterIterator::SKIP_WHITESPACE,
-                                              unusedEscaped, errorCode);
             if (third == u'^') {
                 exteriorlyNegated = true;
                 queryExpressionStart = parsePosition_.getIndex();
