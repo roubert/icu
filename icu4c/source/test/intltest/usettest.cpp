@@ -4638,8 +4638,6 @@ void UnicodeSetTest::TestToPatternOutput() {
             {u"[ - - ]", uR"([\-])"},
             {u"[ - _ - ]", uR"([\-_])"},
             {u"[ - + - ]", uR"([+\-])"},
-            {u"[ { Z e i c h e n k e t t e } Zeichenmenge ]", uR"([Zceg-imn{\ Z\ e\ i\ c\ h\ e\ n\ k\ e\ t\ t\ e\ }])"},
-            {uR"([ { \x5A e i c h e n k e t t e } \x5Aeichenmenge ])", uR"([Zceg-imn{\ Z\ e\ i\ c\ h\ e\ n\ k\ e\ t\ t\ e\ }])"},
             {u"[$d-za-c]", uR"([\$a-z])"},
             {u"[a-c$d-z]", uR"([\$a-z])"},
             {uR"([\uFFFFa-z])", uR"([a-z\uFFFF])"},
@@ -4663,11 +4661,6 @@ void UnicodeSetTest::TestToPatternOutput() {
             {u"[^[c]]", uR"([^[c]])"},
             {uR"([ ^ [ \u0000-b d-\U0010FFFF ] ])", uR"([^[^c]])"},
             {u"[$[]]", uR"([\$[]])"},
-            // Spaces are eliminated within a string-literal even when the syntax is preserved.
-            {u"[ { Z e i c h e n k e t t e } [] Zeichenmenge ]", uR"([{\ Z\ e\ i\ c\ h\ e\ n\ k\ e\ t\ t\ e\ }[]Zeichenmenge])"},
-            // Escapes are removed even when the syntax is preserved.
-            {uR"([ { \x5A e i c h e n k e t t e } [] \x5Aeichenmenge ])",
-            uR"([{\ Z\ e\ i\ c\ h\ e\ n\ k\ e\ t\ t\ e\ }[]Zeichenmenge])"},
             // In ICU 78 and earlier, a named-element was a nested set, so it was preserved and
             // caused the syntax to be preserved.  Now it is treated like an escape.
             {uR"([ \N{LATIN CAPITAL LETTER Z}eichenmenge ])", uR"([Zceg-imn])"},
@@ -4753,6 +4746,13 @@ void UnicodeSetTest::TestParseErrors() {
             // TODO(egg): Well-formed in Java, ill-formed in ICU4C in ICU 78 and earlier.
             u"[a-{z}]",
             u"[{a}-z]",
+            // Well-formed in ICU 78 and earlier (spaces ignored).
+            // In ICU 81 and later, the spaces will mean spaces.
+            // Ill-formed in ICU 79 and 80.
+            u"[ { Z e i c h e n k e t t e } Zeichenmenge ]",
+            uR"([ { \x5A e i c h e n k e t t e } \x5Aeichenmenge ])",
+            u"[ { Z e i c h e n k e t t e } [] Zeichenmenge ]",
+            uR"([ { \x5A e i c h e n k e t t e } [] \x5Aeichenmenge ])",
         }) {
         UErrorCode errorCode = U_ZERO_ERROR;
         const UnicodeSet set(expression, errorCode);

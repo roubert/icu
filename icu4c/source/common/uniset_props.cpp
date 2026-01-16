@@ -37,6 +37,7 @@
 #include "util.h"
 #include "uvector.h"
 #include "uprops.h"
+#include "patternprops.h"
 #include "propname.h"
 #include "normalizer2impl.h"
 #include "uinvchar.h"
@@ -563,7 +564,17 @@ class UnicodeSet::Lexer {
                         next = chars_.next(charsOptions_, escaped, errorCode);
                     }
                 } else {
-                  escaped = false;
+#if U_ICU_VERSION_MAJOR_NUM < 81
+                    if (U_SUCCESS(errorCode) && PatternProps::isWhiteSpace(next)) {
+                        // Transitional prohibition of unescaped spaces in string literals (in
+                        // ICU 78 and earlier, these were ignored; in ICU 81 they will mean
+                        // themselves).
+                        errorCode = UErrorCode::U_ILLEGAL_ARGUMENT_ERROR;
+                    }
+#else
+#error Remove this transitional check, see ICU-23307 and ICU-TC minutes of 2026-01-16.
+#endif
+                    escaped = false;
                 }
                 if (!escaped && next == u'}') {
                     return LexicalElement(
