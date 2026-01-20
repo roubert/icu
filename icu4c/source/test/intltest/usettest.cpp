@@ -4630,6 +4630,11 @@ void UnicodeSetTest::TestToPatternOutput() {
             {u"[  c - z  a - b  ]", u"[a-z]"},
             {uR"([ ^ \u0000-b d-\U0010FFFF ])", u"[c]"},
             {uR"([ \u0000-b d-\U0010FFFF ])", u"[^c]"},
+            {uR"([{Baden-Württemberg}])", uR"([{Baden\-Württemberg}])"},
+            {uR"([{\Ba\den\-\W\ürtte\mber\g}])", uR"([{Baden\-Württemberg}])"},
+            {uR"([{N\or\man\d\ie}])", uR"([{Normandie}])"},
+            {uR"([{P\icar\d\ie}])", uR"([{Picardie}])"},
+            {uR"([{Pr\ovence\-\A\lpe\s\-\C\ôte\ \d\'\A\zur}])", uR"([{Provence\-Alpes\-Côte\ d'Azur}])"},
             {u"[ - - ]", uR"([\-])"},
             {u"[ - _ - ]", uR"([\-_])"},
             {u"[ - + - ]", uR"([+\-])"},
@@ -4738,6 +4743,10 @@ void UnicodeSetTest::TestParseErrors() {
             // This was a well-formed string in ICU 78 and earlier, with the value
             // "N{LATINCAPITALLETTERZ".
             uR"([{\N{LATIN CAPITAL LETTER Z}])",
+            // These three were well-formed in ICU 78 and earlier.
+            uR"([{\Normandie}])",
+            uR"([{\Picardie}])",
+            uR"([{Provence-Al\pes-Côte d'Azur}])",
             // This was a well-formed set in ICU 78 and earlier; now it must be enclosed in square
             // brackets.
             uR"(\N{ latin small letter a })",

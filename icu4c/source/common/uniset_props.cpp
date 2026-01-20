@@ -543,11 +543,20 @@ class UnicodeSet::Lexer {
                 next = chars_.next(charsOptions_ & ~RuleCharacterIterator::PARSE_ESCAPES,
                                    unusedEscaped, errorCode);
                 if (next == u'\\') {
-                    if (chars_.next(charsOptions_ & ~(RuleCharacterIterator::PARSE_ESCAPES |
+                    const UChar32 afterBackslash =
+                        chars_.next(charsOptions_ & ~(RuleCharacterIterator::PARSE_ESCAPES |
                                                       RuleCharacterIterator::SKIP_WHITESPACE),
-                                    unusedEscaped, errorCode) == u'N') {
+                                    unusedEscaped, errorCode);
+                    if (afterBackslash == u'N') {
                         next = scanNamedElementBrackets(errorCode);
                         escaped = true;
+                    } else if (afterBackslash == u'p' || afterBackslash == u'P') {
+                        return LexicalElement(LexicalElement::STRING_LITERAL, {}, getPos(),
+                                              U_MALFORMED_SET,
+                                              /*precomputedSet=*/nullptr,
+                                              /*set=*/{},
+                                              std::u16string_view(pattern_).substr(
+                                                  start, parsePosition_.getIndex() - start));
                     } else {
                         chars_.setPos(beforeNext);
                         // Parse the escape.
