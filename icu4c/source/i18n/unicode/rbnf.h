@@ -1131,6 +1131,7 @@ private:
     friend class FractionalPartSubstitution;
 
     inline NFRuleSet * getDefaultRuleSet() const;
+    void initializeCollator(UErrorCode &status);
     const RuleBasedCollator * getCollator() const;
     DecimalFormatSymbols * initializeDecimalFormatSymbols(UErrorCode &status);
     const DecimalFormatSymbols * getDecimalFormatSymbols() const;
