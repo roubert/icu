@@ -1264,21 +1264,19 @@ RuleBasedNumberFormat::parse(const UnicodeString& text,
     }
 }
 
-#if !UCONFIG_NO_COLLATION
-
 void
 RuleBasedNumberFormat::setLenient(UBool enabled)
 {
     lenient = enabled;
+#if !UCONFIG_NO_COLLATION
     if (!enabled && collator) {
         delete collator;
         collator = nullptr;
     }
+#endif
 }
 
-#endif
-
-void 
+void
 RuleBasedNumberFormat::setDefaultRuleSet(const UnicodeString& ruleSetName, UErrorCode& status) {
     if (U_SUCCESS(status)) {
         if (ruleSetName.isEmpty()) {
@@ -1354,6 +1352,11 @@ RuleBasedNumberFormat::init(const UnicodeString& rules, LocalizationInfo* locali
     if (U_FAILURE(status)) {
         return;
     }
+
+    // Use Turkic case folding for Turkish and Azerbaijani locales.
+    const char* lang = locale.getLanguage();
+    caseFoldOption = (uprv_strcmp(lang, "tr") == 0 || uprv_strcmp(lang, "az") == 0)
+                     ? U_FOLD_CASE_EXCLUDE_SPECIAL_I : U_FOLD_CASE_DEFAULT;
 
     initializeDecimalFormatSymbols(status);
     initializeDefaultInfinityRule(status);

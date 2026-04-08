@@ -985,8 +985,6 @@ public:
                                 Formattable& result,
                                 ParsePosition& parsePosition) const override;
 
-#if !UCONFIG_NO_COLLATION
-
   /**
    * Turns lenient parse mode on and off.
    *
@@ -1030,8 +1028,6 @@ public:
    * @stable ICU 2.0
    */
   U_I18N_API virtual inline UBool isLenient() const override;
-
-#endif
 
   /**
    * Override the default rule set to use.  If ruleSetName is null, reset
@@ -1160,6 +1156,7 @@ private:
     ERoundingMode fRoundingMode { ERoundingMode::kRoundUnnecessary };
     UBool lenient {  };
     UBool unparseable {  };
+    uint8_t caseFoldOption {  };
     UnicodeString* lenientParseRules {  };
     LocalizationInfo* localizations {  };
     UnicodeString originalDescription;
@@ -1171,14 +1168,10 @@ private:
 
 // ---------------
 
-#if !UCONFIG_NO_COLLATION
-
 inline UBool
 RuleBasedNumberFormat::isLenient() const {
     return lenient;
 }
-
-#endif
 
 inline NFRuleSet*
 RuleBasedNumberFormat::getDefaultRuleSet() const {

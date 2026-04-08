@@ -638,6 +638,12 @@ public class RuleBasedNumberFormat extends NumberFormat implements Cloneable {
     private boolean lenientParse = false;
 
     /**
+     * Case folding option for lenient parsing. Uses Turkic case folding for Turkish and Azerbaijani
+     * locales.
+     */
+    transient byte caseFoldOption = (byte) UCharacter.FOLD_CASE_DEFAULT;
+
+    /**
      * Specifies if one of the rules is unparseable. For example, there may be substitutions of the
      * same type in a rule.
      */
@@ -1576,7 +1582,7 @@ public class RuleBasedNumberFormat extends NumberFormat implements Cloneable {
      * @return The collator to use for lenient parsing, or null if lenient parsing is turned off.
      */
     RbnfLenientScanner getLenientScanner() {
-        if (lenientParse) {
+        if (lenientParse && lenientParseRules != null && !lenientParseRules.isEmpty()) {
             RbnfLenientScannerProvider provider = getLenientScannerProvider();
             if (provider != null) {
                 return provider.get(locale, lenientParseRules);
@@ -1695,6 +1701,14 @@ public class RuleBasedNumberFormat extends NumberFormat implements Cloneable {
      */
     private void init(String description, String[][] localizations) {
         initLocalizations(localizations);
+
+        // Use Turkic case folding for Turkish and Azerbaijani locales.
+        String lang = locale.getLanguage();
+        caseFoldOption =
+                (byte)
+                        (("tr".equals(lang) || "az".equals(lang))
+                                ? UCharacter.FOLD_CASE_EXCLUDE_SPECIAL_I
+                                : UCharacter.FOLD_CASE_DEFAULT);
 
         // start by stripping the trailing whitespace from all the rules
         // (this is all the whitespace following each semicolon in the
