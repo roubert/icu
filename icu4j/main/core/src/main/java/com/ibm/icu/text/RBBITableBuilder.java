@@ -122,22 +122,6 @@ class RBBITableBuilder {
         }
 
         //
-        // If the rules contained any references to {bof}
-        //   add a {bof} <cat> <former root of tree> to the
-        //   tree.  Means that all matches must start out with the
-        //   {bof} fake character.
-        //
-        if (fRB.fSetBuilder.sawBOF()) {
-            RBBINode bofTop = new RBBINode(RBBINode.opCat);
-            RBBINode bofLeaf = new RBBINode(RBBINode.leafChar);
-            bofTop.fLeftChild = bofLeaf;
-            bofTop.fRightChild = fRB.fTreeRoots[fRootIx];
-            bofLeaf.fParent = bofTop;
-            bofLeaf.fVal = 2; // Reserved value for {bof}.
-            fRB.fTreeRoots[fRootIx] = bofTop;
-        }
-
-        //
         // Add a unique right-end marker to the expression.
         //   Appears as a cat-node, left child being the original tree,
         //   right child being the end marker.
@@ -180,13 +164,6 @@ class RBBITableBuilder {
         //
         if (fRB.fChainRules) {
             calcChainedFollowPos(fRB.fTreeRoots[fRootIx], endMarkerNode);
-        }
-
-        //
-        //  BOF (start of input) test fixup.
-        //
-        if (fRB.fSetBuilder.sawBOF()) {
-            bofFixup();
         }
 
         //
@@ -434,54 +411,6 @@ class RBBITableBuilder {
                     //  to the second char of a match starting with startNode.
                     endNode.fFollowPos.addAll(startNode.fFollowPos);
                 }
-            }
-        }
-    }
-
-    // -----------------------------------------------------------------------------
-    //
-    //   bofFixup.    Fixup for state tables that include {bof} beginning of input testing.
-    //                Do an swizzle similar to chaining, modifying the followPos set of
-    //                the bofNode to include the followPos nodes from other {bot} nodes
-    //                scattered through the tree.
-    //
-    //                This function has much in common with calcChainedFollowPos().
-    //
-    // -----------------------------------------------------------------------------
-    void bofFixup() {
-        //
-        //   The parse tree looks like this ...
-        //         fTree root  --.       <cat>
-        //                               /     \
-        //                            <cat>   <#end node>
-        //                           /     \
-        //                     <bofNode>   rest
-        //                               of tree
-        //
-        //    We will be adding things to the followPos set of the <bofNode>
-        //
-        RBBINode bofNode = fRB.fTreeRoots[fRootIx].fLeftChild.fLeftChild;
-        Assert.assrt(bofNode.fType == RBBINode.leafChar);
-        Assert.assrt(bofNode.fVal == 2);
-
-        // Get all nodes that can be the start a match of the user-written rules
-        //  (excluding the fake bofNode)
-        //  We want the nodes that can start a match in the
-        //     part labeled "rest of tree"
-        //
-        Set<RBBINode> matchStartNodes = fRB.fTreeRoots[fRootIx].fLeftChild.fRightChild.fFirstPosSet;
-        for (RBBINode startNode : matchStartNodes) {
-            if (startNode.fType != RBBINode.leafChar) {
-                continue;
-            }
-
-            if (startNode.fVal == bofNode.fVal) {
-                //  We found a leaf node corresponding to a {bof} that was
-                //    explicitly written into a rule.
-                //  Add everything from the followPos set of this node to the
-                //    followPos set of the fake bofNode at the start of the tree.
-                //
-                bofNode.fFollowPos.addAll(startNode.fFollowPos);
             }
         }
     }
@@ -1169,9 +1098,6 @@ class RBBITableBuilder {
 
         if (fRB.fLookAheadHardBreak) {
             table.fFlags |= RBBIDataWrapper.RBBI_LOOKAHEAD_HARD_BREAK;
-        }
-        if (fRB.fSetBuilder.sawBOF()) {
-            table.fFlags |= RBBIDataWrapper.RBBI_BOF_REQUIRED;
         }
         if (use8Bits) {
             table.fFlags |= RBBIDataWrapper.RBBI_8BITS_ROWS;

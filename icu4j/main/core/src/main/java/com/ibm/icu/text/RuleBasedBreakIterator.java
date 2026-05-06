@@ -815,20 +815,8 @@ public class RuleBasedBreakIterator extends BreakIterator implements Cloneable {
         int state = START_STATE;
         int row = fRData.getRowIndex(state);
         short category = 3;
-        int flagsState = fRData.fFTable.fFlags;
         int dictStart = fRData.fFTable.fDictCategoriesStart;
         int mode = RBBI_RUN;
-        if ((flagsState & RBBIDataWrapper.RBBI_BOF_REQUIRED) != 0) {
-            category = 2;
-            mode = RBBI_START;
-            if (TRACE) {
-                System.out.print("            " + RBBIDataWrapper.intToString(text.getIndex(), 5));
-                System.out.print(RBBIDataWrapper.intToHexString(c, 10));
-                System.out.println(
-                        RBBIDataWrapper.intToString(state, 7)
-                                + RBBIDataWrapper.intToString(category, 6));
-            }
-        }
 
         // loop until we reach the end of the text or transition to state 0
         while (state != STOP_STATE) {

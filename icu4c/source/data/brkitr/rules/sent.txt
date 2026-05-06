@@ -79,5 +79,7 @@ $ATermEx $CloseEx* $SpEx* $NotLettersEx* $Lower;
 ($STermEx | $ATermEx) $CloseEx* $SpEx* ($Sep | $CR | $LF)?;
 
 #Rule 998
-[[^$STerm $ATerm $Close $Sp $Sep $LF $CR $Format $Extend]{bof}] ($Extend | $Format | $Close | $Sp)* .;
-[[^$STerm $ATerm $Close $Sp $Sep $LF $CR $Format $Extend]{bof}] ($Extend | $Format | $Close | $Sp)* ([$Sep $LF $CR {eof}] | $CR $LF){100};
+[^$STerm $ATerm $Close $Sp $Sep $LF $CR $Format $Extend] ($Extend | $Format | $Close | $Sp)* .;
+[^$STerm $ATerm $Close $Sp $Sep $LF $CR $Format $Extend] ($Extend | $Format | $Close | $Sp)* ([$Sep $LF $CR {eof}] | $CR $LF){100};
+^ ($Extend | $Format | $Close | $Sp)* .;
+^ ($Extend | $Format | $Close | $Sp)* ([$Sep $LF $CR {eof}] | $CR $LF){100};

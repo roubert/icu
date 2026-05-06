@@ -820,10 +820,6 @@ int32_t RuleBasedBreakIterator::handleNext() {
 
 
     mode     = RBBI_RUN;
-    if (statetable->fFlags & RBBI_BOF_REQUIRED) {
-        category = 2;
-        mode     = RBBI_START;
-    }
 
 
     // loop until we reach the end of the text or transition to state 0

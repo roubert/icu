@@ -93,38 +93,6 @@ void  RBBITableBuilder::buildForwardTable() {
 #endif
 
     //
-    // If the rules contained any references to {bof} 
-    //   add a {bof} <cat> <former root of tree> to the
-    //   tree.  Means that all matches must start out with the 
-    //   {bof} fake character.
-    // 
-    if (fRB->fSetBuilder->sawBOF()) {
-        RBBINode *bofTop    = new RBBINode(RBBINode::opCat, *fStatus);
-        if (bofTop == nullptr) {
-            *fStatus = U_MEMORY_ALLOCATION_ERROR;
-        }
-        if (U_FAILURE(*fStatus)) {
-            delete bofTop;
-            return;
-        }
-        RBBINode *bofLeaf   = new RBBINode(RBBINode::leafChar, *fStatus);
-        // Delete and exit if memory allocation failed.
-        if (bofLeaf == nullptr) {
-            *fStatus = U_MEMORY_ALLOCATION_ERROR;
-        }
-        if (U_FAILURE(*fStatus)) {
-            delete bofLeaf;
-            delete bofTop;
-            return;
-        }
-        bofTop->fLeftChild  = bofLeaf;
-        bofTop->fRightChild = fTree;
-        bofLeaf->fParent    = bofTop;
-        bofLeaf->fVal       = 2;      // Reserved value for {bof}.
-        fTree               = bofTop;
-    }
-
-    //
     // Add a unique right-end marker to the expression.
     //   Appears as a cat-node, left child being the original tree,
     //   right child being the end marker.
@@ -186,13 +154,6 @@ void  RBBITableBuilder::buildForwardTable() {
     //
     if (fRB->fChainRules) {
         calcChainedFollowPos(fTree, endMarkerNode);
-    }
-
-    //
-    //  BOF (start of input) test fixup.
-    //
-    if (fRB->fSetBuilder->sawBOF()) {
-        bofFixup();
     }
 
     //
@@ -1579,9 +1540,6 @@ void RBBITableBuilder::exportTable(void *where) {
     }
     if (fRB->fLookAheadHardBreak) {
         table->fFlags  |= RBBI_LOOKAHEAD_HARD_BREAK;
-    }
-    if (fRB->fSetBuilder->sawBOF()) {
-        table->fFlags  |= RBBI_BOF_REQUIRED;
     }
 
     for (state=0; state<table->fNumStates; state++) {
