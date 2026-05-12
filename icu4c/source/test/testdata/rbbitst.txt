@@ -1268,6 +1268,9 @@ between •Mae •Hong •Son •and •the •Salween •River, •the •Thano
 the •Khun •Tan •Range •(ดอย•ขุน•ตาน), •the •Phi •Pan •Nam •Range •(ทิว•เขา•ผี•ปัน•น้ำ), •as •well •as •the •western •\
 part •of •the •Luang •Prabang •Range •(ทิว•เขา•หลวง•พระ•บาง).•</data>
 
+<data>•บทความ•แนะนำ
+<100></data>
+
 # Breaking around numbers that begin with a decimal point.
 # Bug ICU-12017
 

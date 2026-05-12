@@ -1067,6 +1067,11 @@ public class RuleBasedBreakIterator extends BreakIterator implements Cloneable {
             fFirstRuleStatusIndex = 0;
             fOtherRuleStatusIndex = 0;
             fBreaks.removeAllElements();
+            int maxStatus = 0;
+            for (int status : fRData.fStatusTable) {
+                maxStatus = Math.max(status, maxStatus);
+            }
+            isWordLike = maxStatus > 100;
         }
         ;
 
@@ -1090,7 +1095,7 @@ public class RuleBasedBreakIterator extends BreakIterator implements Cloneable {
                 r = fBreaks.elementAt(fPositionInCache);
                 assert (r > fromPos);
                 fBoundary = r;
-                fStatusIndex = fOtherRuleStatusIndex;
+                fStatusIndex = isWordLike || r == fLimit ? fOtherRuleStatusIndex : 0;
                 return true;
             }
 
@@ -1100,7 +1105,7 @@ public class RuleBasedBreakIterator extends BreakIterator implements Cloneable {
                 r = fBreaks.elementAt(fPositionInCache);
                 if (r > fromPos) {
                     fBoundary = r;
-                    fStatusIndex = fOtherRuleStatusIndex;
+                    fStatusIndex = isWordLike || r == fLimit ? fOtherRuleStatusIndex : 0;
                     return true;
                 }
             }
@@ -1133,7 +1138,10 @@ public class RuleBasedBreakIterator extends BreakIterator implements Cloneable {
                 r = fBreaks.elementAt(fPositionInCache);
                 assert (r < fromPos);
                 fBoundary = r;
-                fStatusIndex = (r == fStart) ? fFirstRuleStatusIndex : fOtherRuleStatusIndex;
+                fStatusIndex =
+                        (r == fStart)
+                                ? fFirstRuleStatusIndex
+                                : isWordLike ? fOtherRuleStatusIndex : 0;
                 return true;
             }
 
@@ -1146,7 +1154,10 @@ public class RuleBasedBreakIterator extends BreakIterator implements Cloneable {
                 r = fBreaks.elementAt(fPositionInCache);
                 if (r < fromPos) {
                     fBoundary = r;
-                    fStatusIndex = (r == fStart) ? fFirstRuleStatusIndex : fOtherRuleStatusIndex;
+                    fStatusIndex =
+                            (r == fStart)
+                                    ? fFirstRuleStatusIndex
+                                    : isWordLike ? fOtherRuleStatusIndex : 0;
                     return true;
                 }
             }
@@ -1287,6 +1298,15 @@ public class RuleBasedBreakIterator extends BreakIterator implements Cloneable {
         int fOtherRuleStatusIndex; // Rule status info for 2nd through last boundaries.
         int fBoundary; // Current boundary. Set by preceding(), following().
         int fStatusIndex; // Current rule status index. Set by preceding, following().
+
+        /**
+         * If `this.isWordLike`, the status of dictionary breaks is equal to the status of the final
+         * break of the rule-based segment they refine (fOtherRuleStatusIndex); otherwise,
+         * dictionary breaks have status 0. For compatibility, this property is determined by the
+         * largest status value used by the rules: rules that have a largest status greater than 100
+         * are considered word-like.
+         */
+        private boolean isWordLike;
     }
     ;
 
