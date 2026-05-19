@@ -17,6 +17,8 @@
 *
 */
 
+#include <limits>
+
 #include "cmemory.h"
 #include "unicode/utypes.h"
 #include "unicode/ustring.h"
@@ -196,19 +198,25 @@ ubidi_openSized(int32_t maxLength, int32_t maxRunCount, UErrorCode *pErrorCode) 
  * is this the best way to do this??
  */
 U_CFUNC UBool
-ubidi_getMemory(BidiMemoryForAllocation *bidiMem, int32_t *pSize, UBool mayAllocate, int32_t sizeNeeded) {
+ubidi_getMemory(BidiMemoryForAllocation *bidiMem, int32_t *pSize, UBool mayAllocate, size_t sizeNeeded) {
+    if (sizeNeeded > std::numeric_limits<int32_t>::max()) {
+      // TODO(egg): Ugly guard for ICU-23397.  A cleaner fix would be to change the pSize to size_t*
+      // and update callers throughout to use size_t for sizes (just like uprv_malloc already does).
+      // Not that anyone should be running the UBA on text with that many runs…
+      return false;
+    }
     void **pMemory = (void **)bidiMem;
     /* check for existing memory */
     if(*pMemory==nullptr) {
         /* we need to allocate memory */
         if(mayAllocate && (*pMemory=uprv_malloc(sizeNeeded))!=nullptr) {
-            *pSize=sizeNeeded;
+            *pSize=static_cast<int32_t>(sizeNeeded);
             return true;
         } else {
             return false;
         }
     } else {
-        if(sizeNeeded<=*pSize) {
+        if(sizeNeeded<=static_cast<size_t>(*pSize)) {
             /* there is already enough memory */
             return true;
         }
@@ -224,7 +232,7 @@ ubidi_getMemory(BidiMemoryForAllocation *bidiMem, int32_t *pSize, UBool mayAlloc
              */
             if((memory=uprv_realloc(*pMemory, sizeNeeded))!=nullptr) {
                 *pMemory=memory;
-                *pSize=sizeNeeded;
+                *pSize=static_cast<int32_t>(sizeNeeded);
                 return true;
             } else {
                 /* we failed to grow */
@@ -2471,6 +2479,7 @@ setParaRunsOnly(UBiDi *pBiDi, const char16_t *text, int32_t length,
             runs=pBiDi->runs=pBiDi->runsMemory;
             pBiDi->runCount+=addedRuns;
         } else {
+            *pErrorCode = U_MEMORY_ALLOCATION_ERROR;
             goto cleanup1;
         }
     }

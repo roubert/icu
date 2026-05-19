@@ -544,7 +544,7 @@ static int32_t getRunFromLogicalIndex(UBiDi *pBiDi, int32_t logicalIndex) {
  * negative number of BiDi control characters within this run.
  */
 U_CFUNC UBool
-ubidi_getRuns(UBiDi *pBiDi, UErrorCode*) {
+ubidi_getRuns(UBiDi *pBiDi, UErrorCode* pErrorCode) {
     /*
      * This method returns immediately if the runs are already set. This
      * includes the case of length==0 (handled in setPara)..
@@ -607,6 +607,7 @@ ubidi_getRuns(UBiDi *pBiDi, UErrorCode*) {
             if(getRunsMemory(pBiDi, runCount)) {
                 runs=pBiDi->runsMemory;
             } else {
+                *pErrorCode = U_MEMORY_ALLOCATION_ERROR;
                 return false;
             }
 

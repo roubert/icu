@@ -93,6 +93,7 @@ static void doTailTest(void);
 static void testBracketOverflow(void);
 static void TestExplicitLevel0(void);
 static void testUBidiWriteReorderedBufferOverflow(void);
+static void testUBidiGetRunsBufferOverflow(void);
 
 /* new BIDI API */
 static void testReorderingMode(void);
@@ -143,6 +144,7 @@ addComplexTest(TestNode** root) {
     addTest(root, testBracketOverflow, "complex/bidi/TestBracketOverflow");
     addTest(root, TestExplicitLevel0, "complex/bidi/TestExplicitLevel0");
     addTest(root, testUBidiWriteReorderedBufferOverflow, "complex/bidi/writeReorderedBufferOverflow");
+    addTest(root, testUBidiGetRunsBufferOverflow, "complex/bidi/getRunsBufferOverflow");
 
     addTest(root, doArabicShapingTest, "complex/arabic-shaping/ArabicShapingTest");
     addTest(root, doLamAlefSpecialVLTRArabicShapingTest, "complex/arabic-shaping/lamalef");
@@ -4957,6 +4959,30 @@ testUBidiWriteReorderedBufferOverflow (void) {
         UBIDI_OUTPUT_REVERSE;
     ubidi_writeReordered(bidi, dest, MAXLEN, opt, &status);
     ubidi_close(bidi);
+}
+
+/* ICU-23397 */
+static void
+testUBidiGetRunsBufferOverflow (void) {
+    UErrorCode status = U_ZERO_ERROR;
+    UBiDi* bidi;
+    static const int32_t length = 400000000;
+    UChar* text = uprv_malloc(length * sizeof(UChar));
+    for (int32_t i = 0; i < length; ++i) {
+        text[i] = i % 2 == 0 ? u'A' : u'א';
+    }
+    bidi = ubidi_open();
+    ubidi_setPara(bidi, text, length, UBIDI_DEFAULT_RTL, NULL, &status);
+    int32_t logicalLimit = 0xBADBEEF;
+    UBiDiLevel level = 0xDB;
+    ubidi_getLogicalRun(bidi, length / 2, &logicalLimit, &level);
+    if (logicalLimit != 0xBADBEEF || level != 0xDB) {
+        log_err("ubidi_getLogicalRuns should have failed and left its output parameters untouched "
+                "but it returned with logicalLimit=%d, level=%d",
+                logicalLimit, level);
+    }
+    ubidi_close(bidi);
+    uprv_free(text);
 }
 
 static void TestExplicitLevel0(void) {

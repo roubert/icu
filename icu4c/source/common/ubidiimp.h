@@ -441,7 +441,7 @@ typedef union {
 
 /* helper function to (re)allocate memory if allowed */
 U_CFUNC UBool
-ubidi_getMemory(BidiMemoryForAllocation *pMemory, int32_t *pSize, UBool mayAllocate, int32_t sizeNeeded);
+ubidi_getMemory(BidiMemoryForAllocation *pMemory, int32_t *pSize, UBool mayAllocate, size_t sizeNeeded);
 
 /* helper macros for each allocated array in UBiDi */
 #define getDirPropsMemory(pBiDi, length) \
