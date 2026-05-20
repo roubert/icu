@@ -15,11 +15,15 @@ import com.ibm.icu.text.RBBIRuleBuilder.IntPair;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Function;
 
 /**
  * This class is part of the RBBI rule compiler. It builds the state transition table used by the
@@ -488,7 +492,7 @@ class RBBITableBuilder {
     //                        transition tables for these states, by the algorithm
     //                        of fig. 3.44 in Aho.
     //
-    //                        Most of the comments are quotes of Aho's psuedo-code.
+    //                        Most of the comments are quotes of Aho's pseudo-code.
     //
     // -----------------------------------------------------------------------------
     void buildStateTable() {
@@ -802,6 +806,161 @@ class RBBITableBuilder {
 
     // -----------------------------------------------------------------------------
     //
+    //    minimizeStates    Minimize the number of states of the DFA, by Algorithm
+    //                      3.6 in Aho.  The one twist is that instead of starting
+    //                      from a partition in two groups (accepting and non-
+    //                      accepting states), we partition according to all
+    //                      relevant properties of the states, namely the values of:
+    //                      - fAccepting—which may be non-accepting,
+    //                        unconditionally accepting, or the index of a
+    //                        lookahead—;
+    //                      - fLookAhead;
+    //                      - fTagsIdx.
+    //
+    // -----------------------------------------------------------------------------
+
+    void minimizeStates() {
+        class StateType {
+            int fAccepting;
+            int fLookAhead;
+            int fTagsIdx;
+
+            public StateType(int fAccepting, int fLookAhead, int fTagsIdx) {
+                this.fAccepting = fAccepting;
+                this.fLookAhead = fLookAhead;
+                this.fTagsIdx = fTagsIdx;
+            }
+
+            @Override
+            public boolean equals(Object other) {
+                if (!(other instanceof StateType)) {
+                    return false;
+                }
+                final var otherType = (StateType) other;
+                return fAccepting == otherType.fAccepting
+                        && fLookAhead == otherType.fLookAhead
+                        && fTagsIdx == otherType.fTagsIdx;
+            }
+        }
+        ;
+        Map<StateType, List<Integer>> initialPartition =
+                new TreeMap<>(
+                        Comparator.<StateType, Integer>comparing(t -> t.fAccepting)
+                                .thenComparing(t -> t.fLookAhead)
+                                .thenComparing(t -> t.fTagsIdx));
+        for (int i = 0; i < fDStates.size(); ++i) {
+            final RBBIStateDescriptor state = fDStates.get(i);
+            var type = new StateType(state.fAccepting, state.fLookAhead, state.fTagsIdx);
+            initialPartition.computeIfAbsent(type, k -> new ArrayList<>()).add(i);
+        }
+        // The partition Π from Algorithm 3.6.
+        // (We could call it Π, but some member companies that integrate the ICU
+        // code base prohibit non-ASCII identifiers…).
+        List<List<Integer>> partition = new ArrayList<>();
+        for (final var part : initialPartition.values()) {
+            partition.add(part);
+        }
+        // Given the index of a state 𝑠 in `fDStates`, returns a List of integers
+        // σ(𝑠) such that 𝑠.fDtran[i] (the index of the state reached by the
+        // transition from 𝑠 on the character class with index i) is in Π[σ(𝑠)[i]].
+        // We then have σ(𝑠) == σ(𝑡) if and only if “for all input symbols 𝑎, states
+        // 𝑠 and 𝑡 have transitions on 𝑎 to states in the same group of Π” (which is
+        // what defines the refinement of 𝐺 in Fig. 3.45).
+        Function<Integer, List<Integer>> partitionSignature =
+                (Integer stateIndex) -> {
+                    RBBIStateDescriptor state = fDStates.get(stateIndex);
+                    ArrayList<Integer> result = new ArrayList<>();
+                    for (int i = 0; i < state.fDtran.length; ++i) {
+                        int toState = state.fDtran[i];
+                        for (int partIndex = 0; partIndex < partition.size(); ++partIndex) {
+                            final List<Integer> part = partition.get(partIndex);
+                            if (part.contains(toState)) {
+                                result.add(partIndex);
+                                break;
+                            }
+                        }
+                    }
+                    return result;
+                };
+        // The loop between steps 2. and 3. of Algorithm 3.6.
+        for (; ; ) {
+            // Π_new.
+            List<List<Integer>> partitionNew = new ArrayList<>();
+            // The procedure from Figure 3.45, Construction of Π_new.
+            boolean refined = false;
+            // Group 𝐺 in Π (=`partition`).
+            for (List<Integer> group : partition) {
+                // Partition 𝐺 based on the signature, see above.
+                Map<List<Integer>, List<Integer>> groupRefinement =
+                        new TreeMap<>(
+                                new Comparator<List<Integer>>() {
+                                    @Override
+                                    public int compare(List<Integer> o1, List<Integer> o2) {
+                                        if (o1.size() != o2.size()) {
+                                            return Integer.compare(o1.size(), o2.size());
+                                        }
+                                        for (int i = 0; i < o1.size(); ++i) {
+                                            final int comparison =
+                                                    Integer.compare(o1.get(i), o2.get(i));
+                                            if (comparison != 0) {
+                                                return comparison;
+                                            }
+                                        }
+                                        return 0;
+                                    }
+                                });
+                // Index of a state in the group.
+                for (final int s : group) {
+                    final var signature = partitionSignature.apply(s);
+                    groupRefinement.computeIfAbsent(signature, k -> new ArrayList<>()).add(s);
+                }
+                refined |= groupRefinement.size() > 1;
+                for (final var subgroup : groupRefinement.values()) {
+                    partitionNew.add(subgroup);
+                }
+            }
+            if (refined) {
+                // This cannot be `partition = partitionNew` because `partition` is captured in
+                // `partitionSignature`.
+                partition.clear();
+                partition.addAll(partitionNew);
+            } else {
+                break;
+            }
+        }
+        // We will use the indices in `partition` as the new state indices.  Make
+        // sure that the start (1) and stop (0) states remain in their correct
+        // places; everything else can merrily be scrambled.
+        for (int i = 0; i < partition.size(); ++i) {
+            List<Integer> part_i = partition.get(i);
+            if (part_i.contains(0)) {
+                partition.set(i, partition.get(0));
+                partition.set(0, part_i);
+            } else if (part_i.contains(1)) {
+                partition.set(i, partition.get(1));
+                partition.set(1, part_i);
+            }
+        }
+        final var oldStateToPart = new int[fDStates.size()];
+        for (int i = 0; i < partition.size(); ++i) {
+            final var part = partition.get(i);
+            for (final var state : part) {
+                oldStateToPart[state] = i;
+            }
+        }
+        List<RBBIStateDescriptor> oldStates = fDStates;
+        fDStates = new ArrayList<>();
+        for (final var part : partition) {
+            RBBIStateDescriptor state = oldStates.get(part.get(0));
+            fDStates.add(state);
+            for (int j = 0; j < state.fDtran.length; ++j) {
+                state.fDtran[j] = oldStateToPart[state.fDtran[j]];
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------------
+    //
     //  printPosSets   Debug function.  Dump Nullable, firstpos, lastpos and followpos
     //                 for each node in the tree.
     //
@@ -887,48 +1046,6 @@ class RBBITableBuilder {
     }
 
     /**
-     * Find duplicate (redundant) states, beginning at the specified pair, within this state table.
-     * This is an iterator-like function, used to identify states (state table rows) that can be
-     * eliminated.
-     *
-     * @param states in/out parameter, specifies where to start looking for duplicates, and returns
-     *     the first pair of duplicates found, if any.
-     * @return true if duplicate states were found, false otherwise.
-     * @internal
-     */
-    boolean findDuplicateState(RBBIRuleBuilder.IntPair states) {
-        int numStates = fDStates.size();
-        int numCols = fRB.fSetBuilder.getNumCharCategories();
-
-        for (; states.first < numStates - 1; ++states.first) {
-            RBBIStateDescriptor firstSD = fDStates.get(states.first);
-            for (states.second = states.first + 1; states.second < numStates; ++states.second) {
-                RBBIStateDescriptor duplSD = fDStates.get(states.second);
-                if (firstSD.fAccepting != duplSD.fAccepting
-                        || firstSD.fLookAhead != duplSD.fLookAhead
-                        || firstSD.fTagsIdx != duplSD.fTagsIdx) {
-                    continue;
-                }
-                boolean rowsMatch = true;
-                for (int col = 0; col < numCols; ++col) {
-                    int firstVal = firstSD.fDtran[col];
-                    int duplVal = duplSD.fDtran[col];
-                    if (!((firstVal == duplVal)
-                            || ((firstVal == states.first || firstVal == states.second)
-                                    && (duplVal == states.first || duplVal == states.second)))) {
-                        rowsMatch = false;
-                        break;
-                    }
-                }
-                if (rowsMatch) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    /**
      * Find the next duplicate state in the safe reverse table. An iterator function.
      *
      * @param states in/out parameter, specifies where to start looking for duplicates, and returns
@@ -961,38 +1078,6 @@ class RBBITableBuilder {
             }
         }
         return false;
-    }
-
-    /**
-     * Remove a duplicate state (row) from the state table. All references to the deleted (second)
-     * state are redirected to first state.
-     *
-     * @param duplStates The duplicate pair of states.
-     * @internal
-     */
-    void removeState(IntPair duplStates) {
-        final int keepState = duplStates.first;
-        final int duplState = duplStates.second;
-        assert (keepState < duplState);
-        assert (duplState < fDStates.size());
-
-        fDStates.remove(duplState);
-
-        int numStates = fDStates.size();
-        int numCols = fRB.fSetBuilder.getNumCharCategories();
-        for (int state = 0; state < numStates; ++state) {
-            RBBIStateDescriptor sd = fDStates.get(state);
-            for (int col = 0; col < numCols; col++) {
-                int existingVal = sd.fDtran[col];
-                int newVal = existingVal;
-                if (existingVal == duplState) {
-                    newVal = keepState;
-                } else if (existingVal > duplState) {
-                    newVal = existingVal - 1;
-                }
-                sd.fDtran[col] = newVal;
-            }
-        }
     }
 
     /**
@@ -1032,15 +1117,9 @@ class RBBITableBuilder {
      * @internal
      */
     int removeDuplicateStates() {
-        IntPair dupls = new IntPair(3, 0);
-        int numStatesRemoved = 0;
-
-        while (findDuplicateState(dupls)) {
-            // System.out.printf("Removing duplicate states (%d, %d)\n", dupls.first, dupls.second);
-            removeState(dupls);
-            ++numStatesRemoved;
-        }
-        return numStatesRemoved;
+        int oldStateCount = fDStates.size();
+        minimizeStates();
+        return fDStates.size() - oldStateCount;
     }
 
     /**
