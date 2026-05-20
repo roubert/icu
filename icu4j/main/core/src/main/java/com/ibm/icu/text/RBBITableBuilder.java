@@ -15,13 +15,13 @@ import com.ibm.icu.text.RBBIRuleBuilder.IntPair;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
 
@@ -841,13 +841,13 @@ class RBBITableBuilder {
                         && fLookAhead == otherType.fLookAhead
                         && fTagsIdx == otherType.fTagsIdx;
             }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(fAccepting, fLookAhead, fTagsIdx);
+            }
         }
-        ;
-        Map<StateType, List<Integer>> initialPartition =
-                new TreeMap<>(
-                        Comparator.<StateType, Integer>comparing(t -> t.fAccepting)
-                                .thenComparing(t -> t.fLookAhead)
-                                .thenComparing(t -> t.fTagsIdx));
+        Map<StateType, List<Integer>> initialPartition = new LinkedHashMap<>();
         for (int i = 0; i < fDStates.size(); ++i) {
             final RBBIStateDescriptor state = fDStates.get(i);
             var type = new StateType(state.fAccepting, state.fLookAhead, state.fTagsIdx);
@@ -891,24 +891,7 @@ class RBBITableBuilder {
             // Group 𝐺 in Π (=`partition`).
             for (List<Integer> group : partition) {
                 // Partition 𝐺 based on the signature, see above.
-                Map<List<Integer>, List<Integer>> groupRefinement =
-                        new TreeMap<>(
-                                new Comparator<List<Integer>>() {
-                                    @Override
-                                    public int compare(List<Integer> o1, List<Integer> o2) {
-                                        if (o1.size() != o2.size()) {
-                                            return Integer.compare(o1.size(), o2.size());
-                                        }
-                                        for (int i = 0; i < o1.size(); ++i) {
-                                            final int comparison =
-                                                    Integer.compare(o1.get(i), o2.get(i));
-                                            if (comparison != 0) {
-                                                return comparison;
-                                            }
-                                        }
-                                        return 0;
-                                    }
-                                });
+                Map<List<Integer>, List<Integer>> groupRefinement = new LinkedHashMap<>();
                 // Index of a state in the group.
                 for (final int s : group) {
                     final var signature = partitionSignature.apply(s);
