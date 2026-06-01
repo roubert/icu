@@ -126,6 +126,17 @@ $CANT_CM = [ $SP $BK $CR $LF $NL $ZW $CM];       # Bases that can't take CMs
 #
 $AL_FOLLOW      = [$BK $CR $LF $NL $ZW $SP $CL $CP $EX $HL $IS $SY $WJ $GL [$OP - $EastAsian] $QU $BA $HH $HY $NS $IN $NU $PR $PO $ALPlus];
 
+# LB 3.
+# A rule
+#  . [{eof}] {100};
+# would result in the correct behaviour (chaining on anything at the end of
+# text), but would create unnecessary states: in LF eot, after LF, we would need
+# a transition on eot, and since we do not have a transition on eot at eot, the
+# states after LF and after eot would have to be distinct.  Excluding the hard
+# breaks which already set status 100 in LB 4 and 5 below means that a single
+# state can handle hard line breaks and eot.
+[^$BK $CR $LF $NL] [{eof}] {100};
+[{eof}] {100};
 
 #
 #  Rule LB 4, 5    Mandatory (Hard) breaks.

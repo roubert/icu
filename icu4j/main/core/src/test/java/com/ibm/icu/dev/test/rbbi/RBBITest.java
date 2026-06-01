@@ -8,6 +8,11 @@
  */
 package com.ibm.icu.dev.test.rbbi;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import com.ibm.icu.dev.test.CoreTestFmwk;
 import com.ibm.icu.impl.RBBIDataWrapper;
 import com.ibm.icu.text.BreakIterator;
@@ -767,14 +772,18 @@ public class RBBITest extends CoreTestFmwk {
         }
         String text = builder.toString();
 
-        // Generate rule which will caused length+4 character classes and
-        // length+3 states
+        // Generate rules which result in numChar+4 character classes and numChar+3 states.
 
         builder = new StringBuilder(100 + 6 * numChar);
         builder.append("!!quoted_literals_only;");
         for (char c = 0x4e00; c < 0x4e00 + numChar; c++) {
+            // Each rule in this loop creates a new class [c] and a new state (reached by
+            // transitioning on [c] from the start state).
             builder.append("\'").append(c).append(c).append("';");
         }
+        // This one does not create new states, but creates a transition on a new class between the
+        // state reached by [\u4E00] and the accepting state.
+        builder.append('\'').append('\u4E00').append((char) (0x4e00 + numChar)).append("';");
         builder.append(".;");
         String rules = builder.toString();
 

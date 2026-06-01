@@ -3965,12 +3965,16 @@ void RBBITest::testTrieStateTable(int32_t numChar, bool expectedTrieWidthIn8Bits
     for (char16_t c = 0x4e00; c < 0x5000; c++) {
         text.append(c).append(c);
     }
-    // Generate rule which will caused length+4 character classes and
-    // length+3 states
+    // Generate rules which result in numChar+4 character classes and numChar+3 states.
     UnicodeString rules(u"!!quoted_literals_only;");
     for (char16_t c = 0x4e00; c < 0x4e00 + numChar; c++) {
+        // Each rule in this loop creates a new class [c] and a new state (reached by transitioning
+        // on [c] from the start state).
         rules.append(u'\'').append(c).append(c).append(u"';");
     }
+    // This one does not create new states, but creates a transition on a new class between the
+    // state reached by [\u4E00] and the accepting state.
+    rules.append(u'\'').append(0x4e00).append(0x4e00 + numChar).append(u"';");
     rules.append(u".;");
     UErrorCode status = U_ZERO_ERROR;
     UParseError parseError;
