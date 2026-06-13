@@ -67,9 +67,6 @@ $InCBLinker $InCBExtend* $InCBConsonant;
 $Extended_Pict $Extend* $ZWJ $Extended_Pict;
 
 # GB 12-13. Keep pairs of regional indicators together
-#           Note that hard break '/' rule triggers only if there are three or more initial RIs,
-
-^$Prepend* $Regional_Indicator $Regional_Indicator / $Regional_Indicator;
 ^$Prepend* $Regional_Indicator $Regional_Indicator;
 
 # GB 999 Match a single code point if no other rule applies.
