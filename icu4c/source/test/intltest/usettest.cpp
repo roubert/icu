@@ -4823,7 +4823,7 @@ void UnicodeSetTest::TestParseErrors() {
     for (const auto expression : std::vector<std::u16string_view>{
             // Java error message: "Invalid property pattern".
             u"[:]",
-            uR"(\p)"
+            uR"(\p)",
             u"[:^]",
             uR"(\P)",
             uR"(\N)",
