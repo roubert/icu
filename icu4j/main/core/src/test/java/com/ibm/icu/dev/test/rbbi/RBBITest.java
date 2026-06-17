@@ -14,9 +14,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.ibm.icu.dev.test.CoreTestFmwk;
+import com.ibm.icu.dev.test.lang.UnicodeSetTest.ShakespeareanSymbolTable;
 import com.ibm.icu.impl.RBBIDataWrapper;
 import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.RuleBasedBreakIterator;
+import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.util.CodePointTrie;
 import com.ibm.icu.util.ULocale;
 import java.text.CharacterIterator;
@@ -1340,6 +1342,54 @@ public class RBBITest extends CoreTestFmwk {
                                 + firstSegment
                                 + ", got "
                                 + actual);
+        }
+    }
+
+    @Test
+    public void TestCustomProperties() {
+        final var shakespeareanSymbolTable = new ShakespeareanSymbolTable();
+        final var s = new UnicodeSet();
+        shakespeareanSymbolTable.applyPropertyAlias("Name", "Theſeus", s);
+        final String theseus = Character.toString(s.charAt(0));
+        s.clear();
+        shakespeareanSymbolTable.applyPropertyAlias("Name", "Hippolita", s);
+        final String hippolyta = Character.toString(s.charAt(0));
+        s.clear();
+        shakespeareanSymbolTable.applyPropertyAlias("Name", "Moth", s);
+        final String moth = Character.toString(s.charAt(0));
+        final var it =
+                new RuleBasedBreakIterator(
+                        "[\\N{Theſeus}] [\\N{Hippolita}]; .;", shakespeareanSymbolTable);
+        it.setText(moth + theseus + hippolyta + moth);
+        assertEquals("First break", it.next(), 1);
+        assertEquals("Second break", it.next(), 3);
+        // Check that we only get the properties from the XSymbolTable, not the variables.
+        try {
+            new RuleBasedBreakIterator(
+                    "[$AMidsummerNightsDream] [$AMidsummerNightsDream]; .;",
+                    shakespeareanSymbolTable);
+            errln(
+                    "Expected IllegalArgumentException to be thrown: "
+                            + "$AMidsummerNightsDream should not be defined");
+        } catch (IllegalArgumentException e) {
+            // 1020F is U_BRK_MALFORMED_SET (not visible from here).
+            assertEquals(
+                    "Exception message",
+                    "Error " + 0x1020F + " at line 1 column 1",
+                    e.getMessage());
+        }
+        try {
+            new RuleBasedBreakIterator(
+                    "$AMidsummerNightsDream $AMidsummerNightsDream; .;", shakespeareanSymbolTable);
+            errln(
+                    "Expected IllegalArgumentException to be thrown: "
+                            + "$AMidsummerNightsDream should not be defined");
+        } catch (IllegalArgumentException e) {
+            // 1020A is U_BRK_UNDEFINED_VARIABLE (not visible from here).
+            assertEquals(
+                    "Exception message",
+                    "Error " + 0x1020A + " at line 1 column 24",
+                    e.getMessage());
         }
     }
 

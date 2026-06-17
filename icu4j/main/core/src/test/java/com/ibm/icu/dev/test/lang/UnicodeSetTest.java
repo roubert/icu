@@ -4554,7 +4554,7 @@ public class UnicodeSetTest extends CoreTestFmwk {
     // Variables are prefixed by a dollar, and consist of XID_Continue characters.
     // The names of plays (case- and punctuation-insensitive) are recognized as variables for the
     // sets of their characters.
-    static class ShakespeareanSymbolTable extends XSymbolTable {
+    public static class ShakespeareanSymbolTable extends XSymbolTable {
         static final Map<String, List<String>> DRAMATIS_PERSONAE;
 
         static final List<String> ALL_CHARACTERS;
